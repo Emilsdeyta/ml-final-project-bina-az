@@ -56,15 +56,84 @@ class DecisionTree:
     # --- impurity -----------------------------------------------------------
     def _impurity(self, y) -> float:
         """Gini / entropy (classification) or MSE/variance (regression)."""
-        raise NotImplementedError("TODO: impurity")
+        y = np.asarray(y)
+
+        if y.size == 0:
+            return 0.0
+
+        if self.criterion == "mse":
+            mean_y = np.mean(y)
+            return float(np.mean((y - mean_y) ** 2))
+
+        _, counts = np.unique(y, return_counts=True)
+        probabilities = counts / counts.sum()
+
+        if self.criterion == "gini":
+            return float(1.0 - np.sum(probabilities ** 2))
+
+        if self.criterion == "entropy":
+            return float(-np.sum(probabilities * np.log2(probabilities)))
+
+        raise ValueError(f"Unknown criterion: {self.criterion}")
 
     def _best_split(self, X, y):
         """
-        Search features & candidate thresholds; return the split that
+        Search features and candidate thresholds; return the split that
         maximizes impurity decrease (feature, threshold, decrease), or
         None if no valid split improves things.
         """
-        raise NotImplementedError("TODO: best split search")
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y)
+
+        n_samples, n_features = X.shape
+        parent_impurity = self._impurity(y)
+
+        best_split = None
+        best_decrease = 0.0
+
+        for feature_idx in range(n_features):
+            feature_values = X[:, feature_idx]
+            unique_values = np.unique(feature_values)
+
+            if unique_values.size < 2:
+                continue
+
+            thresholds = (
+                unique_values[:-1] + unique_values[1:]
+            ) / 2.0
+
+            for threshold in thresholds:
+                left_mask = feature_values <= threshold
+                right_mask = ~left_mask
+
+                n_left = int(np.sum(left_mask))
+                n_right = n_samples - n_left
+
+                if (
+                    n_left < self.min_samples_leaf
+                    or n_right < self.min_samples_leaf
+                ):
+                    continue
+
+                left_impurity = self._impurity(y[left_mask])
+                right_impurity = self._impurity(y[right_mask])
+
+                weighted_impurity = (
+                    (n_left / n_samples) * left_impurity
+                    + (n_right / n_samples) * right_impurity
+                )
+
+                decrease = parent_impurity - weighted_impurity
+
+                if decrease > best_decrease:
+                    best_decrease = decrease
+                    best_split = (
+                        feature_idx,
+                        float(threshold),
+                        float(decrease),
+                    )
+
+        return best_split
 
     # --- grow / predict -----------------------------------------------------
     def _grow(self, X, y, depth: int) -> Node:
