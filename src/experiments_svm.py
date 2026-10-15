@@ -279,6 +279,7 @@ def run(splits_b: dict) -> dict:
         FIG_DIR / "svm_roc_pr.pdf",
     )
 
+    # Capture best_lam in a default arg to avoid late-binding closure issue
     results = {
         "svm": {
             **test_m,
@@ -288,10 +289,31 @@ def run(splits_b: dict) -> dict:
             "schedule_comparison": schedules,
             "lambda_sweep": sweep,
             "rff_sweep": rff_res,
+            # run_all.py uses these 3 keys to re-fit + re-score uniformly
+            "factory": (lambda lam: lambda: PegasosSVM(
+                lambda_=lam, n_iters=20_000, log_every=200, random_state=SEED
+            ))(best_lam),
+            "task": "B",
+            "scaled": True,
         },
-        "sk_svc":  sk["sk_svc"],
-        "sk_sgd":  sk["sk_sgd"],
-        "margin":  margin_info,
+        "sk_svc": {
+            **sk["sk_svc"],
+            "factory": (lambda lam: lambda: __import__(
+                "sklearn.svm", fromlist=["SVC"]
+            ).SVC(C=1.0 / lam, kernel="rbf", probability=True, random_state=SEED))(best_lam),
+            "task": "B",
+            "scaled": True,
+        },
+        "sk_sgd": {
+            **sk["sk_sgd"],
+            "factory": (lambda lam: lambda: __import__(
+                "sklearn.linear_model", fromlist=["SGDClassifier"]
+            ).SGDClassifier(loss="hinge", alpha=lam, max_iter=1000,
+                            random_state=SEED, tol=1e-4))(best_lam),
+            "task": "B",
+            "scaled": True,
+        },
+        "margin": margin_info,
     }
 
     ev.save_json(results, FIG_DIR / "svm_results.json")
