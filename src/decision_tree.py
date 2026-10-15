@@ -28,6 +28,9 @@ class Node:
         self.left = None         # Node
         self.right = None        # Node
         self.value = None        # leaf prediction (class label/proba or mean)
+        self.proba = None
+        self.n_samples = 0
+        self.impurity_decrease = 0.0
 
     def is_leaf(self) -> bool:
         return self.left is None and self.right is None
@@ -52,6 +55,11 @@ class DecisionTree:
         self.min_impurity_decrease = min_impurity_decrease
         self.random_state = random_state
         self.root: Node | None = None
+        self.classes_ = None
+        self.n_features_in_ = None
+        self.feature_importances_ = None
+        self.n_leaves_ = 0
+        self.depth_ = 0
 
     # --- impurity -----------------------------------------------------------
     def _impurity(self, y) -> float:
@@ -136,22 +144,195 @@ class DecisionTree:
         return best_split
 
     # --- grow / predict -----------------------------------------------------
+
+    def _make_leaf(self, y) -> Node:
+        """Create a leaf containing its prediction and class probabilities."""
+        node = Node()
+        node.n_samples = y.size
+
+        if self.task == "regression":
+            node.value = float(np.mean(y))
+            return node
+
+        counts = np.array(
+            [np.sum(y == class_label) for class_label in self.classes_],
+            dtype=float,
+        )
+
+        node.proba = counts / counts.sum()
+        node.value = self.classes_[np.argmax(counts)]
+
+        return node
+
     def _grow(self, X, y, depth: int) -> Node:
         """Recursively build the tree, respecting the stopping rules."""
-        raise NotImplementedError("TODO: recursive grow")
+        n_samples = y.size
+        impurity = self._impurity(y)
+
+        depth_limit_reached = (
+            self.max_depth is not None and depth >= self.max_depth
+        )
+        too_few_samples = n_samples < self.min_samples_split
+        pure_node = impurity <= 1e-12
+
+        if depth_limit_reached or too_few_samples or pure_node:
+            return self._make_leaf(y)
+
+        split = self._best_split(X, y)
+
+        if split is None:
+            return self._make_leaf(y)
+
+        feature_idx, threshold, decrease = split
+
+        if decrease < self.min_impurity_decrease:
+            return self._make_leaf(y)
+
+        left_mask = X[:, feature_idx] <= threshold
+        right_mask = ~left_mask
+
+        if (
+            np.sum(left_mask) < self.min_samples_leaf
+            or np.sum(right_mask) < self.min_samples_leaf
+        ):
+            return self._make_leaf(y)
+
+        node = Node()
+        node.feature = int(feature_idx)
+        node.threshold = float(threshold)
+        node.n_samples = n_samples
+        node.impurity_decrease = float(decrease)
+
+        node.left = self._grow(
+            X[left_mask],
+            y[left_mask],
+            depth + 1,
+        )
+
+        node.right = self._grow(
+            X[right_mask],
+            y[right_mask],
+            depth + 1,
+        )
+
+        return node
+
+    def _collect_tree_stats(self, node, depth, importances):
+        """Return leaf count and maximum depth while collecting importances."""
+        if node.is_leaf():
+            return 1, depth
+
+        importances[node.feature] += (
+            node.n_samples * node.impurity_decrease
+        )
+
+        left_leaves, left_depth = self._collect_tree_stats(
+            node.left,
+            depth + 1,
+            importances,
+        )
+        right_leaves, right_depth = self._collect_tree_stats(
+            node.right,
+            depth + 1,
+            importances,
+        )
+
+        n_leaves = left_leaves + right_leaves
+        max_depth = max(left_depth, right_depth)
+
+        return n_leaves, max_depth
 
     def fit(self, X, y):
         X = np.asarray(X, dtype=float)
-        y = np.asarray(y)
+        y = np.asarray(y).reshape(-1)
+
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D array.")
+
+        if X.shape[0] != y.shape[0]:
+            raise ValueError("X and y must contain the same number of samples.")
+
+        self.n_features_in_ = X.shape[1]
+
+        if self.task == "classification":
+            self.classes_ = np.unique(y)
+        else:
+            self.classes_ = None
+
         self.root = self._grow(X, y, depth=0)
+
+        importances = np.zeros(self.n_features_in_, dtype=float)
+
+        self.n_leaves_, self.depth_ = self._collect_tree_stats(
+            self.root,
+            depth=0,
+            importances=importances,
+        )
+
+        total_importance = importances.sum()
+
+        if total_importance > 0.0:
+            importances /= total_importance
+
+        self.feature_importances_ = importances
+
         return self
 
+    def _leaf_for_one(self, x, node: Node) -> Node:
+        """Traverse the tree and return the leaf reached by one sample."""
+        while not node.is_leaf():
+            if x[node.feature] <= node.threshold:
+                node = node.left
+            else:
+                node = node.right
+
+        return node
+
     def _predict_one(self, x, node: Node):
-        raise NotImplementedError("TODO: traverse to a leaf")
+        leaf = self._leaf_for_one(x, node)
+        return leaf.value
 
     def predict(self, X):
-        raise NotImplementedError("TODO: predict")
+        if self.root is None:
+            raise ValueError("The tree must be fitted before prediction.")
+
+        X = np.asarray(X, dtype=float)
+
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D array.")
+
+        if X.shape[1] != self.n_features_in_:
+            raise ValueError("X has an incorrect number of features.")
+
+        return np.asarray(
+            [self._predict_one(x, self.root) for x in X]
+        )
 
     def predict_proba(self, X):
         """Classification only: return class probabilities from leaf counts."""
-        raise NotImplementedError("TODO: predict_proba (classification)")
+        if self.task != "classification":
+            raise ValueError("predict_proba is available only for classification.")
+
+        if self.root is None:
+            raise ValueError("The tree must be fitted before prediction.")
+
+        X = np.asarray(X, dtype=float)
+
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D array.")
+
+        if X.shape[1] != self.n_features_in_:
+            raise ValueError("X has an incorrect number of features.")
+
+        probabilities = [
+            self._leaf_for_one(x, self.root).proba
+            for x in X
+        ]
+
+        return np.vstack(probabilities)
