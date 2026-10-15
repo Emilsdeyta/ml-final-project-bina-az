@@ -1,0 +1,34 @@
+\input{figures/data_summary.tex}
+\subsection{Raw data and cleaning}
+The Kaggle dump holds \NRawRows{} scraped rows; the same listing appears on many scrape days.
+We keep the latest scrape per listing, drop listings whose price moved by more than $2\times$,
+restrict to residential sales and apply fixed sanity bounds (15--1500~m$^2$, 200--15\,000~AZN/m$^2$),
+leaving \NFinal{} listings (\NAfterItemDedup{} after de-duplication, \NAfterResidential{} residential,
+\NAfterValidity{} after validity filters). Text fields (\texttt{Sahə}, \texttt{Mərtəbə}, \texttt{Torpaq sahəsi}) are parsed
+with regular expressions; coordinates outside Azerbaijan become missing.
+
+\subsection{Target leakage}
+\texttt{unit\_price} and \texttt{total\_price} restate the target (correlation of \texttt{total\_price}
+with \texttt{price}: \LeakTotalPriceCorr{}; \texttt{unit\_price}$\times$area with \texttt{price}: \LeakUnitPriceCorr{})
+and are removed together with identifiers and free text (owner/shop names, address, description) and
+post-listing popularity signals (views, VIP flags). Every dropped column is listed in \texttt{DECISIONS.md}.
+
+\subsection{Leakage-safe features and splits}
+All statistics are learned on the training rows only. Missingness is structural (houses have no storeys,
+flats no land), so we impute structurally and use group-wise medians (rooms by category and area quintile,
+coordinates by district) instead of one global median. District is encoded by log-frequency and a smoothed
+target encoding, and each listing receives the mean/std/distance of log price per m$^2$ of its 20 nearest
+\emph{training} listings; for training rows both are computed out-of-fold, so a row never sees its own label.
+Re-posted copies of one flat share a group; the 70/15/15 split (seed 42) and all folds keep groups together
+(\NFlats{} flats, \NSharedFlats{} shared across splits). This yields \NTrain{} / \NVal{} / \NTest{} listings and
+\NFeatures{} features. Task~A predicts $\log(1+\text{price})$; Task~B labels a listing premium if its price exceeds
+the training median (\TierThreshold{}~AZN), giving premium rates \PremiumTrain{}/\PremiumVal{}/\PremiumTest{}.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\columnwidth]{figures/eda_price_hist.png}
+\caption{Price is heavy-tailed; $\log$ price is close to symmetric.}\label{fig:price}
+\end{figure}
+\begin{figure}[t]\centering
+\includegraphics[width=\columnwidth]{figures/eda_location_map.png}
+\caption{Price per m$^2$ by location motivates the geo-kNN features.}\label{fig:map}
+\end{figure}

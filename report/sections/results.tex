@@ -1,0 +1,22 @@
+\input{figures/data_summary.tex}
+\input{figures/results_table.tex}
+\begin{figure}[t]\centering
+\includegraphics[width=\columnwidth]{figures/roc_pr_taskB.png}
+\caption{Task B ROC and precision--recall curves on the test set.}\label{fig:roc}
+\end{figure}
+\begin{figure}[t]\centering
+\includegraphics[width=\columnwidth]{figures/pred_vs_true_taskA.png}
+\caption{Task A: predicted vs true price (best model) and log residuals.}\label{fig:pred}
+\end{figure}
+% Emil:
+Error analysis. Errors are not uniform. Mid-priced listings (100–400k AZN) have a median
+absolute percentage error of about 10%, but the model regresses toward the mean: it
+overestimates cheap listings (+15% bias below 100k AZN) and underestimates luxury
+listings (−27% above 800k AZN, mdape 32%). Houses are the hardest category
+(mdape 22.7% vs. about 10% for flats), and all 20 largest absolute errors are
+underpredictions, 18 of them large houses (mean area about 613 m$^2$) in affluent areas
+such as Badamdar, Mərdəkan and Bilgəh. Price depends there on land, view and construction
+quality, which our features do not capture (the free-text description was not used), and
+a log-scale linear/tree model compresses the extreme upper tail. Future work: land-area
+interactions, text features, quantile or two-stage models for the luxury segment.
+% report/figures/error_by_*.csv and results.json ("error_analysis_taskA").
