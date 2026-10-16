@@ -85,37 +85,53 @@ class DecisionTree:
         raise ValueError(f"Unknown criterion: {self.criterion}")
 
     def _best_split(self, X, y):
-        """
-        Search features and candidate thresholds; return the split that
-        maximizes impurity decrease (feature, threshold, decrease), or
-        None if no valid split improves things.
-        """
-        X = np.asarray(X, dtype=float)
-        y = np.asarray(y)
-
         n_samples, n_features = X.shape
         parent_impurity = self._impurity(y)
 
-        best_split = None
+        best_feature = None
+        best_threshold = None
         best_decrease = 0.0
 
+        if self.task == "classification":
+            _, y_encoded = np.unique(y, return_inverse=True)
+            n_classes = int(np.max(y_encoded)) + 1
+            total_counts = np.bincount(
+                y_encoded,
+                minlength=n_classes,
+            )
+
+        else:
+            total_sum = np.sum(y)
+            total_squared_sum = np.sum(y ** 2)
+
         for feature_idx in range(n_features):
-            feature_values = X[:, feature_idx]
-            unique_values = np.unique(feature_values)
+            order = np.argsort(X[:, feature_idx], kind="mergesort")
 
-            if unique_values.size < 2:
-                continue
+            x_sorted = X[order, feature_idx]
 
-            thresholds = (
-                unique_values[:-1] + unique_values[1:]
-            ) / 2.0
+            if self.task == "classification":
+                y_sorted = y_encoded[order]
+                left_counts = np.zeros(n_classes, dtype=int)
+                right_counts = total_counts.copy()
 
-            for threshold in thresholds:
-                left_mask = feature_values <= threshold
-                right_mask = ~left_mask
+            else:
+                y_sorted = y[order]
+                left_sum = 0.0
+                left_squared_sum = 0.0
 
-                n_left = int(np.sum(left_mask))
-                n_right = n_samples - n_left
+            for split_position in range(1, n_samples):
+                moved_target = y_sorted[split_position - 1]
+
+                if self.task == "classification":
+                    left_counts[moved_target] += 1
+                    right_counts[moved_target] -= 1
+
+                else:
+                    left_sum += moved_target
+                    left_squared_sum += moved_target ** 2
+
+                n_left = split_position
+                n_right = n_samples - split_position
 
                 if (
                     n_left < self.min_samples_leaf
@@ -123,25 +139,71 @@ class DecisionTree:
                 ):
                     continue
 
-                left_impurity = self._impurity(y[left_mask])
-                right_impurity = self._impurity(y[right_mask])
+                if x_sorted[split_position - 1] == x_sorted[split_position]:
+                    continue
+
+                if self.task == "classification":
+                    left_probabilities = left_counts / n_left
+                    right_probabilities = right_counts / n_right
+
+                    if self.criterion == "gini":
+                        left_impurity = 1.0 - np.sum(left_probabilities ** 2)
+                        right_impurity = 1.0 - np.sum(
+                            right_probabilities ** 2
+                        )
+
+                    else:
+                        positive_left = left_probabilities[
+                            left_probabilities > 0
+                        ]
+                        positive_right = right_probabilities[
+                            right_probabilities > 0
+                        ]
+
+                        left_impurity = -np.sum(
+                            positive_left * np.log2(positive_left)
+                        )
+                        right_impurity = -np.sum(
+                            positive_right * np.log2(positive_right)
+                        )
+
+                else:
+                    right_sum = total_sum - left_sum
+                    right_squared_sum = (
+                        total_squared_sum - left_squared_sum
+                    )
+
+                    left_impurity = (
+                        left_squared_sum / n_left
+                        - (left_sum / n_left) ** 2
+                    )
+                    right_impurity = (
+                        right_squared_sum / n_right
+                        - (right_sum / n_right) ** 2
+                    )
+
+                    left_impurity = max(0.0, left_impurity)
+                    right_impurity = max(0.0, right_impurity)
 
                 weighted_impurity = (
-                    (n_left / n_samples) * left_impurity
-                    + (n_right / n_samples) * right_impurity
+                    n_left / n_samples * left_impurity
+                    + n_right / n_samples * right_impurity
                 )
 
                 decrease = parent_impurity - weighted_impurity
 
                 if decrease > best_decrease:
+                    best_feature = feature_idx
+                    best_threshold = (
+                        x_sorted[split_position - 1]
+                        + x_sorted[split_position]
+                    ) / 2.0
                     best_decrease = decrease
-                    best_split = (
-                        feature_idx,
-                        float(threshold),
-                        float(decrease),
-                    )
 
-        return best_split
+        if best_feature is None:
+            return None
+
+        return best_feature, best_threshold, best_decrease
 
     # --- grow / predict -----------------------------------------------------
 

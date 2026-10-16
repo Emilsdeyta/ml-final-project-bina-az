@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 
 from src.decision_tree import DecisionTree
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor
 
 
 @pytest.mark.parametrize(
@@ -157,3 +159,113 @@ def test_predict_rejects_wrong_feature_count():
 
     with pytest.raises(ValueError, match="incorrect number of features"):
         tree.predict([[1.0, 2.0]])
+
+def test_best_split_handles_duplicate_feature_values():
+    X = np.array([[1.0], [1.0], [2.0], [2.0], [3.0], [3.0]])
+    y = np.array([0, 0, 0, 1, 1, 1])
+
+    tree = DecisionTree(
+        task="classification",
+        criterion="gini",
+    )
+
+    feature, threshold, decrease = tree._best_split(X, y)
+
+    assert feature == 0
+    assert threshold == pytest.approx(1.5)
+    assert decrease == pytest.approx(0.25)
+
+
+def test_multiclass_tree_uses_cumulative_class_counts():
+    X = np.array([[1.0], [2.0], [3.0], [4.0], [5.0], [6.0]])
+    y = np.array([0, 0, 1, 1, 2, 2])
+
+    tree = DecisionTree(
+        task="classification",
+        criterion="gini",
+        max_depth=2,
+    ).fit(X, y)
+
+    predictions = tree.predict(X)
+    probabilities = tree.predict_proba([[1.5], [3.5], [5.5]])
+
+    np.testing.assert_array_equal(predictions, y)
+    np.testing.assert_allclose(
+        probabilities,
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ],
+    )
+
+def test_classification_predictions_match_sklearn():
+    X_train = np.array(
+        [
+            [1.0, 0.0],
+            [2.0, 1.0],
+            [3.0, 0.0],
+            [4.0, 1.0],
+            [7.0, 0.0],
+            [8.0, 1.0],
+            [9.0, 0.0],
+            [10.0, 1.0],
+        ]
+    )
+    y_train = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+
+    X_test = np.array(
+        [
+            [2.5, 0.5],
+            [5.0, 0.5],
+            [8.5, 0.5],
+        ]
+    )
+
+    our_tree = DecisionTree(
+        task="classification",
+        criterion="gini",
+        max_depth=2,
+    ).fit(X_train, y_train)
+
+    sklearn_tree = DecisionTreeClassifier(
+        criterion="gini",
+        max_depth=2,
+        random_state=42,
+    ).fit(X_train, y_train)
+
+    np.testing.assert_array_equal(
+        our_tree.predict(X_test),
+        sklearn_tree.predict(X_test),
+    )
+
+    np.testing.assert_allclose(
+        our_tree.predict_proba(X_test),
+        sklearn_tree.predict_proba(X_test),
+    )
+
+
+def test_regression_predictions_match_sklearn():
+    X_train = np.array(
+        [[1.0], [2.0], [3.0], [4.0], [7.0], [8.0], [9.0], [10.0]]
+    )
+    y_train = np.array([1.0, 1.5, 2.0, 2.5, 8.0, 8.5, 9.0, 9.5])
+
+    X_test = np.array([[2.5], [5.0], [8.5]])
+
+    our_tree = DecisionTree(
+        task="regression",
+        criterion="mse",
+        max_depth=1,
+    ).fit(X_train, y_train)
+
+    sklearn_tree = DecisionTreeRegressor(
+        criterion="squared_error",
+        max_depth=1,
+        random_state=42,
+    ).fit(X_train, y_train)
+
+    np.testing.assert_allclose(
+        our_tree.predict(X_test),
+        sklearn_tree.predict(X_test),
+    )
