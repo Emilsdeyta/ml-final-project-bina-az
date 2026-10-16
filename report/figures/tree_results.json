@@ -1,0 +1,331 @@
+{
+  "tree_reg": {
+    "rmse": 0.23880062107831554,
+    "mae": 0.16276155495992148,
+    "r2": 0.8559328384707408,
+    "rmse_price": 132282.98641823162,
+    "mae_price": 49516.46875847589,
+    "r2_price": 0.7046226949582964,
+    "mdape": 0.11443316028957162,
+    "fit_time": 14.381821000017226,
+    "predict_time": 0.028585099993506446,
+    "val_r2": 0.8600169116094224,
+    "best_config": {
+      "criterion": "mse",
+      "max_depth": 10,
+      "min_samples_leaf": 15
+    },
+    "tuning": [
+      {
+        "config": {
+          "criterion": "mse",
+          "max_depth": 6,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.811910914318799,
+        "fit_time": 1.326380499987863
+      },
+      {
+        "config": {
+          "criterion": "mse",
+          "max_depth": 8,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.8346023274938941,
+        "fit_time": 1.9452134000021033
+      },
+      {
+        "config": {
+          "criterion": "mse",
+          "max_depth": 10,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.8399668824898335,
+        "fit_time": 2.495260399999097
+      },
+      {
+        "config": {
+          "criterion": "mse",
+          "max_depth": 12,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.8382545124959737,
+        "fit_time": 3.113591700006509
+      },
+      {
+        "config": {
+          "criterion": "mse",
+          "max_depth": 10,
+          "min_samples_leaf": 30
+        },
+        "validation_score": 0.8359763510532431,
+        "fit_time": 2.2831420000002254
+      }
+    ],
+    "task": "A",
+    "scaled": false
+  },
+  "tree_clf": {
+    "accuracy": 0.913825098585015,
+    "precision": 0.9155783582089553,
+    "recall": 0.9115393545391224,
+    "f1": 0.9135543920884235,
+    "tn": 3953,
+    "fp": 362,
+    "fn": 381,
+    "tp": 3926,
+    "roc_auc": 0.9719074367874012,
+    "pr_auc": 0.9682770436848435,
+    "fit_time": 76.93875239999034,
+    "predict_time": 0.042255899985320866,
+    "val_roc_auc": 0.96932702822432,
+    "best_config": {
+      "criterion": "gini",
+      "max_depth": 10,
+      "min_samples_leaf": 30
+    },
+    "tuning": [
+      {
+        "config": {
+          "criterion": "gini",
+          "max_depth": 6,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.957616761126898,
+        "fit_time": 9.931944000010844
+      },
+      {
+        "config": {
+          "criterion": "gini",
+          "max_depth": 8,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.957268867747623,
+        "fit_time": 13.244019500009017
+      },
+      {
+        "config": {
+          "criterion": "gini",
+          "max_depth": 10,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.9564712500061207,
+        "fit_time": 14.472956600016914
+      },
+      {
+        "config": {
+          "criterion": "gini",
+          "max_depth": 12,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.9550141118640655,
+        "fit_time": 14.445107199979248
+      },
+      {
+        "config": {
+          "criterion": "gini",
+          "max_depth": 10,
+          "min_samples_leaf": 30
+        },
+        "validation_score": 0.9599753926842147,
+        "fit_time": 12.869399899995187
+      },
+      {
+        "config": {
+          "criterion": "entropy",
+          "max_depth": 10,
+          "min_samples_leaf": 15
+        },
+        "validation_score": 0.9574147671982307,
+        "fit_time": 14.182098399993265
+      }
+    ],
+    "task": "B",
+    "scaled": false
+  },
+  "sk_tree_reg": {
+    "rmse": 0.23833421644670982,
+    "mae": 0.16243952336375048,
+    "r2": 0.8564950478381468,
+    "rmse_price": 132119.29711328523,
+    "mae_price": 49353.36435334886,
+    "r2_price": 0.7053532528694826,
+    "mdape": 0.1141140913045986,
+    "fit_time": 0.6028269000235014,
+    "predict_time": 0.002078999998047948,
+    "task": "A",
+    "scaled": false
+  },
+  "sk_tree_clf": {
+    "accuracy": 0.913825098585015,
+    "precision": 0.9155783582089553,
+    "recall": 0.9115393545391224,
+    "f1": 0.9135543920884235,
+    "tn": 3953,
+    "fp": 362,
+    "fn": 381,
+    "tp": 3926,
+    "roc_auc": 0.9724409131056964,
+    "pr_auc": 0.968990162711036,
+    "fit_time": 0.7010127999819815,
+    "predict_time": 0.0027345999842509627,
+    "task": "B",
+    "scaled": false
+  },
+  "feature_importances": {
+    "regression": {
+      "feature_names": [
+        "area_m2",
+        "log_area",
+        "rooms",
+        "rooms_missing",
+        "area_per_room",
+        "floor",
+        "total_floors",
+        "is_first",
+        "is_last",
+        "rel_floor",
+        "log_land",
+        "lat",
+        "lng",
+        "dist_center_km",
+        "has_mortgage",
+        "has_deed",
+        "district_freq",
+        "district_te",
+        "geo_logppm2_mean",
+        "geo_logppm2_std",
+        "geo_dist_km",
+        "repair=missing",
+        "repair=var",
+        "repair=yoxdur",
+        "building_category=Həyət evi/Bağ evi",
+        "building_category=Köhnə tikili",
+        "building_category=Yeni tikili"
+      ],
+      "values": [
+        0.6158869919862294,
+        0.0,
+        0.0028134193064974057,
+        0.0,
+        0.001479009334498053,
+        0.0018152774950402136,
+        0.008521034277105884,
+        0.00012736840054566767,
+        7.896616029757819e-05,
+        0.0024365802613315795,
+        0.00877180807656022,
+        0.0023362450260893133,
+        0.0028742919009182447,
+        0.0036918222917911815,
+        0.00010929473886540485,
+        0.0032432348632929894,
+        0.003813424841559357,
+        0.12313342961091749,
+        0.2109825796532916,
+        0.0012877163505525667,
+        0.0011454089381686236,
+        0.0,
+        0.001637858148192811,
+        0.0011657566819064371,
+        0.0,
+        0.0,
+        0.002648481656347972
+      ],
+      "top_features": [
+        "area_m2",
+        "geo_logppm2_mean",
+        "district_te",
+        "log_land",
+        "total_floors",
+        "district_freq",
+        "dist_center_km",
+        "has_deed",
+        "lng",
+        "rooms",
+        "building_category=Yeni tikili",
+        "rel_floor",
+        "lat",
+        "floor",
+        "repair=var"
+      ]
+    },
+    "classification": {
+      "feature_names": [
+        "area_m2",
+        "log_area",
+        "rooms",
+        "rooms_missing",
+        "area_per_room",
+        "floor",
+        "total_floors",
+        "is_first",
+        "is_last",
+        "rel_floor",
+        "log_land",
+        "lat",
+        "lng",
+        "dist_center_km",
+        "has_mortgage",
+        "has_deed",
+        "district_freq",
+        "district_te",
+        "geo_logppm2_mean",
+        "geo_logppm2_std",
+        "geo_dist_km",
+        "repair=missing",
+        "repair=var",
+        "repair=yoxdur",
+        "building_category=Həyət evi/Bağ evi",
+        "building_category=Köhnə tikili",
+        "building_category=Yeni tikili"
+      ],
+      "values": [
+        0.6481104023114101,
+        0.0,
+        8.27769382206922e-05,
+        0.0,
+        0.0018746426551105547,
+        0.005634583306652178,
+        0.014110342821265148,
+        0.0,
+        0.001077872920155629,
+        0.005847771958114952,
+        0.00851609718079903,
+        0.006752116371625804,
+        0.006662296471439922,
+        0.0086521534845417,
+        6.957569943242606e-05,
+        0.0008990649208909713,
+        0.0024968945180801486,
+        0.1868055237938009,
+        0.08638184898522937,
+        0.0011712674257712589,
+        0.0013542073101193244,
+        0.0,
+        0.006151421770535208,
+        0.003476415677619632,
+        0.0,
+        0.0004250540037633271,
+        0.003447669475421735
+      ],
+      "top_features": [
+        "area_m2",
+        "district_te",
+        "geo_logppm2_mean",
+        "total_floors",
+        "dist_center_km",
+        "log_land",
+        "lat",
+        "lng",
+        "repair=var",
+        "rel_floor",
+        "floor",
+        "repair=yoxdur",
+        "building_category=Yeni tikili",
+        "district_freq",
+        "area_per_room"
+      ]
+    }
+  }
+}
