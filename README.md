@@ -1,63 +1,30 @@
-# MLE-AI-201 Machine Learning — Final Project (Starter Pack)
+# MLE-AI-201 Final Project - bina.az price prediction
 
-Build **two models from scratch** (a decision tree and an SVM) on the
-**bina.az** real-estate dataset, then benchmark honestly against
-scikit-learn. Read the full brief in the project statement PDF handed out
-with this pack.
+Decision tree and linear SVM (Pegasos) written from scratch in NumPy, benchmarked against scikit-learn
+on the bina.az sale listings. Task A: regression of `log1p(price)`. Task B: premium vs standard tier.
 
-- **Released:** Sun 04 Oct 2026
-- **Due:** **Sun 18 Oct 2026, 23:59 (Baku)** — two weeks, no late submissions.
-- **Demo:** defended in the session after the deadline.
-
-## What you submit (on Moodle)
-Exactly **three** things; **one member submits** for the whole team:
-1. **GitHub link** to your repo (tagged `v1.0-final`).
-2. **Report PDF** (IEEE two-column — use `report/report.tex`).
-3. **Slides PDF**.
-
-Keep `contribution_report.md` in the repo root (checked at the demo).
-
-## The two tasks
-- **Task A — Regression:** predict `price` (consider `log(price)`).
-- **Task B — Classification:** predict a derived **price tier**
-  (premium vs standard, median split on the training set).
-
-## Golden rule
-Your **decision tree** and your **SVM** must be **your own NumPy code**.
-scikit-learn is for the comparison baselines (and the optional bonuses)
-only. For the SVM you do **not** need a QP/SMO solver — use the
-**Pegasos** sub-gradient method (see the statement and `src/svm.py`).
-
-## Repo layout
-```
-.
-├── README.md               # this file
-├── requirements.txt        # pin your versions
-├── .gitignore
-├── contribution_report.md  # who did what (keep in repo root)
-├── data/                   # dataset lives here (not committed — see data/README.md)
-├── src/                    # YOUR from-scratch code
-│   ├── data_prep.py        #   loading, cleaning, split, tier label
-│   ├── decision_tree.py    #   DecisionTree (Gini/entropy/MSE)
-│   ├── svm.py              #   PegasosSVM (hinge-loss sub-gradient)
-│   ├── evaluate.py         #   metrics + comparison helpers
-│   └── run_all.py          #   ONE command reproduces every number/figure
-├── report/                 # IEEE report (self-contained, no IEEEtran.cls)
-│   ├── report.tex
-│   └── figures/
-└── presentation/           # your slides PDF
-```
-
-## Reproducibility (graded)
-- Pin dependencies in `requirements.txt`; fix all random seeds.
-- `python -m src.run_all` must reproduce **every** headline number and
-  figure from a clean checkout.
-- Do **not** commit the raw data archive (see `.gitignore`).
-
-## Quick start
+## Reproduce everything (one command)
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-# put the dataset in data/ (see data/README.md), then:
-python -m src.run_all
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt                        # Python 3.10-3.12
+# download the Kaggle CSV into data/house_sale.csv  (see data/README.md)
+python -m src.run_all                                  # all numbers, tables, figures
+pytest -v                                              # 34 tests, no dataset needed
 ```
+Useful flags: `--only-data` (data + EDA), `--fast` (3-fold CV), `--strict` (fail if a teammate module is missing).
+Optional: `python -m src.data_ablation` (evidence for the preprocessing choices; validation split only).
+
+Outputs: `report/figures/` -> `results_table.tex`, `results.json`, `data_summary.tex` (numbers quoted in the paper),
+`eda_*.png`, `roc_pr_taskB.png`, `confusion_taskB.png`, `pred_vs_true_taskA.png`, `worst_errors_taskA.csv`, `error_by_*.csv`.
+
+## Leakage safeguards (all covered by tests)
+* `unit_price`, `total_price`, identifiers and free text are never features; `clean()` asserts it.
+* Imputation values, clip bounds, scaler, tier threshold and encodings come from TRAIN only; `transform` never reads `price`.
+* Target-based features (district TE, geo-kNN) are out-of-fold with flat-grouped folds: a row never sees its own label.
+* The split keeps re-posted copies of one flat together; headline CV re-fits all preprocessing inside every fold.
+* Seed 42 everywhere; no test-set use for any choice.
+
+## Layout
+`src/data_prep.py` data + features + splits | `src/evaluate.py` metrics, CI, error analysis, tables |
+`src/eda.py` figures | `src/run_all.py` pipeline | `src/decision_tree.py`, `src/svm.py` models |
+`src/experiments_*.py` sweeps | `DECISIONS.md` every cleaning decision | `TEAM_NOTES.md` interface notes.

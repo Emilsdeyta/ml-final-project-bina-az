@@ -1,30 +1,21 @@
 # Contribution Report
 
-Keep this file in the repo root. It is checked at the demo. Be honest and
-specific — "helped with everything" is not acceptable. One row per member,
-plus a short per-member paragraph.
-
-## Team
-| Member (Surname, Name) | GitHub handle | Main responsibilities |
-|------------------------|---------------|-----------------------|
-| ---                    | ---           | ---                   |
-| ---                    | ---           | ---                   |
-| ---                    | ---           | ---                   |
+| Member | GitHub handle | Main responsibilities |
+|--------|---------------|-----------------------|
+| Emil | <handle> | Data cleaning + leakage-safe preprocessing, splits, metrics/evaluation, run_all pipeline, EDA, README, report sections Data/Results |
+| Gasham | <handle> | Decision tree from scratch, tree experiments, sklearn tree comparison |
+| Orxan | <handle> | Pegasos SVM from scratch, RFF kernel, SVM experiments, sklearn SVM comparison |
 
 ## Per-member summary
-**Surname, Name —** 2–4 sentences: what you designed, implemented, wrote,
-and debugged. Reference concrete files/PRs/commits.
+**Emil —** Wrote `src/data_prep.py` (cleaning, `Preprocessor` with out-of-fold target/geo-kNN encodings, grouped stratified split, nested CV folds), `src/evaluate.py` (all metrics in NumPy, bootstrap, error analysis, results table), `src/eda.py`, `src/run_all.py`, `src/data_ablation.py`, `src/linear_baseline.py` (bonus: ridge normal equations) and the tests in `tests/test_data_prep.py`, `tests/test_evaluate.py`, `tests/test_run_all_smoke.py`. (Add PR numbers.)
 
-**Surname, Name —** ...
+**Gasham —** (write your own paragraph: files, PRs, what you debugged.)
 
-**Surname, Name —** ...
+**Orxan —** (write your own paragraph: files, PRs, what you debugged.)
 
 ## Rough effort split
-Give an approximate percentage per member (should sum to ~100%) and note any
-imbalance and why.
-
 | Member | Approx. % |
 |--------|-----------|
-| ---    | ---       |
-| ---    | ---       |
-| ---    | ---       |
+| Emil | ~33 |
+| Gasham | ~33 |
+| Orxan | ~33 |
