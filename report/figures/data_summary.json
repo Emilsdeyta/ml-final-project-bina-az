@@ -1,0 +1,63 @@
+{
+  "NRawRows": 100775,
+  "NAfterItemDedup": 63773,
+  "NAfterResidential": 57796,
+  "NAfterValidity": 57712,
+  "NFinal": 57480,
+  "NTrain": 40236,
+  "NVal": 8622,
+  "NTest": 8622,
+  "NFeatures": 27,
+  "NFlats": 56391,
+  "NSharedFlats": 0,
+  "threshold_azn": 208000.0,
+  "feature_names": [
+    "area_m2",
+    "log_area",
+    "rooms",
+    "rooms_missing",
+    "area_per_room",
+    "floor",
+    "total_floors",
+    "is_first",
+    "is_last",
+    "rel_floor",
+    "log_land",
+    "lat",
+    "lng",
+    "dist_center_km",
+    "has_mortgage",
+    "has_deed",
+    "district_freq",
+    "district_te",
+    "geo_logppm2_mean",
+    "geo_logppm2_std",
+    "geo_dist_km",
+    "repair=missing",
+    "repair=var",
+    "repair=yoxdur",
+    "building_category=Həyət evi/Bağ evi",
+    "building_category=Köhnə tikili",
+    "building_category=Yeni tikili"
+  ],
+  "leakage_audit": {
+    "total_price_equals_price_share": 0.9998709997519226,
+    "total_price_corr_with_price": 0.9999999993792067,
+    "unit_price_missing_share": 0.24588439593153064,
+    "unit_price_x_area_corr_with_price": 0.9999999865318264
+  },
+  "premium_rate": {
+    "train": 0.4995774927925241,
+    "val": 0.49976803525864066,
+    "test": 0.4995360705172814
+  },
+  "group_aware_split": true,
+  "cleaning_steps": {
+    "rows_raw": 100775,
+    "after_valid_price": 100775,
+    "after_item_dedup": 63773,
+    "after_residential": 57796,
+    "after_validity": 57712,
+    "after_content_dedup": 57480
+  }
+}

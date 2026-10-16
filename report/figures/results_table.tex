@@ -1,0 +1,63 @@
+\begin{table*}[t]
+\centering\small
+\caption{Task A (price regression), test set. $\pm$: bootstrap std; best per column in bold.}\label{tab:results_a}
+\begin{tabular}{lrrrrrr}
+\toprule
+Model & RMSE (log) & MAE (log) & $R^2$ (log) & $R^2$ (AZN) & MAE (AZN) & Fit (s) \\
+\midrule
+Mean predictor & 0.629 $\pm$ 0.006 & 0.488 $\pm$ 0.004 & -0.000 $\pm$ 0.000 & -0.049 $\pm$ 0.004 & 127,850 $\pm$ 2,295 & 0.00 \\
+Ridge, normal eq. (ours) & \textbf{0.226 $\pm$ 0.003} & \textbf{0.157 $\pm$ 0.002} & \textbf{0.870 $\pm$ 0.004} & 0.705 $\pm$ 0.031 & \textbf{48,280 $\pm$ 1,405} & 0.01 \\
+Decision tree (ours) & 0.239 $\pm$ 0.004 & 0.163 $\pm$ 0.002 & 0.856 $\pm$ 0.004 & 0.705 $\pm$ 0.034 & 49,516 $\pm$ 1,413 & 12.46 \\
+sklearn DecisionTreeRegressor & 0.238 $\pm$ 0.004 & 0.162 $\pm$ 0.002 & 0.856 $\pm$ 0.004 & \textbf{0.705 $\pm$ 0.034} & 49,353 $\pm$ 1,416 & 0.91 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\small
+\caption{Task B (price tier), test set. $\pm$: bootstrap std; best per column in bold.}\label{tab:results_b}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Model & Acc. & Prec. & Rec. & F1 & ROC-AUC & PR-AUC & Fit (s) \\
+\midrule
+Majority class & 0.500 $\pm$ 0.006 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 0.000 $\pm$ 0.000 & 0.500 $\pm$ 0.000 & 0.500 $\pm$ 0.006 & 0.00 \\
+Decision tree (ours) & 0.914 $\pm$ 0.003 & 0.916 $\pm$ 0.004 & 0.912 $\pm$ 0.004 & 0.914 $\pm$ 0.003 & 0.972 $\pm$ 0.002 & 0.968 $\pm$ 0.002 & 65.39 \\
+sklearn DecisionTreeClassifier & 0.914 $\pm$ 0.003 & 0.916 $\pm$ 0.004 & 0.912 $\pm$ 0.004 & 0.914 $\pm$ 0.003 & 0.972 $\pm$ 0.002 & 0.969 $\pm$ 0.002 & 0.66 \\
+Pegasos SVM (ours) & 0.906 $\pm$ 0.003 & 0.889 $\pm$ 0.005 & 0.928 $\pm$ 0.004 & 0.908 $\pm$ 0.003 & 0.968 $\pm$ 0.002 & 0.967 $\pm$ 0.002 & 1.05 \\
+sklearn SVC & \textbf{0.924 $\pm$ 0.003} & \textbf{0.920 $\pm$ 0.004} & \textbf{0.929 $\pm$ 0.004} & \textbf{0.924 $\pm$ 0.003} & \textbf{0.981 $\pm$ 0.001} & \textbf{0.981 $\pm$ 0.001} & 306.22 \\
+sklearn SGD (hinge) & 0.912 $\pm$ 0.003 & 0.902 $\pm$ 0.004 & 0.924 $\pm$ 0.004 & 0.913 $\pm$ 0.003 & 0.969 $\pm$ 0.002 & 0.967 $\pm$ 0.002 & 0.07 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\small
+\caption{Task A, nested cross-validation on train+val (mean $\pm$ std over folds).}\label{tab:cv_a}
+\begin{tabular}{lrrr}
+\toprule
+Model & RMSE (log) & MAE (log) & $R^2$ (log) \\
+\midrule
+Mean predictor & 0.637 $\pm$ 0.004 & 0.492 $\pm$ 0.002 & -0.000 $\pm$ 0.000 \\
+Ridge, normal eq. (ours) & \textbf{0.226 $\pm$ 0.003} & \textbf{0.156 $\pm$ 0.002} & \textbf{0.874 $\pm$ 0.004} \\
+Decision tree (ours) & 0.236 $\pm$ 0.003 & 0.160 $\pm$ 0.002 & 0.863 $\pm$ 0.002 \\
+sklearn DecisionTreeRegressor & 0.236 $\pm$ 0.003 & 0.160 $\pm$ 0.002 & 0.863 $\pm$ 0.002 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\small
+\caption{Task B, nested cross-validation on train+val (mean $\pm$ std over folds).}\label{tab:cv_b}
+\begin{tabular}{lrrr}
+\toprule
+Model & Acc. & F1 & ROC-AUC \\
+\midrule
+Majority class & 0.501 $\pm$ 0.006 & 0.000 $\pm$ 0.000 & 0.500 $\pm$ 0.000 \\
+Decision tree (ours) & 0.913 $\pm$ 0.004 & 0.913 $\pm$ 0.004 & 0.972 $\pm$ 0.001 \\
+sklearn DecisionTreeClassifier & 0.913 $\pm$ 0.004 & 0.913 $\pm$ 0.004 & 0.971 $\pm$ 0.001 \\
+Pegasos SVM (ours) & 0.910 $\pm$ 0.003 & 0.910 $\pm$ 0.004 & 0.969 $\pm$ 0.002 \\
+sklearn SVC & \textbf{0.925 $\pm$ 0.003} & \textbf{0.925 $\pm$ 0.003} & \textbf{0.980 $\pm$ 0.001} \\
+sklearn SGD (hinge) & 0.912 $\pm$ 0.003 & 0.912 $\pm$ 0.003 & 0.970 $\pm$ 0.002 \\
+\bottomrule
+\end{tabular}
+\end{table*}

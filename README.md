@@ -1,30 +1,73 @@
-# MLE-AI-201 Final Project - bina.az price prediction
+# Crack Detection Project — Final Deliverable
 
-Decision tree and linear SVM (Pegasos) written from scratch in NumPy, benchmarked against scikit-learn
-on the bina.az sale listings. Task A: regression of `log1p(price)`. Task B: premium vs standard tier.
+Concrete/pavement crack detection via CNN segmentation, mathematical regression on real
+cracks, synthetic crack generation, and the inverse (curve-recovery) problem.
 
-## Reproduce everything (one command)
-```bash
-python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
-pip install -r requirements.txt                        # Python 3.10-3.12
-# download the Kaggle CSV into data/house_sale.csv  (see data/README.md)
-python -m src.run_all                                  # all numbers, tables, figures
-pytest -v                                              # 34 tests, no dataset needed
+## Structure
+
 ```
-Useful flags: `--only-data` (data + EDA), `--fast` (3-fold CV), `--strict` (fail if a teammate module is missing).
-Optional: `python -m src.data_ablation` (evidence for the preprocessing choices; validation split only).
+crack_detection_project/
+├── src/                              # Core, tested Python modules (importable, no bugs)
+│   ├── dataset.py                    # Dataset class + leakage-safe splitting utilities
+│   ├── model.py                      # U-Net (7.7M params, base_filters=32)
+│   ├── losses_metrics.py             # BCE+Dice loss, IoU/Dice/Precision/Recall, tolerant IoU
+│   ├── train.py                      # Resumable training loop (Kaggle-session-safe)
+│   ├── curve_fit.py                  # Regression on REAL crack masks (skeleton -> polynomial)
+│   ├── synthetic.py                  # Synthetic circle/sine crack image generator
+│   └── inverse_fit.py                # Inverse problem: recover circle/sine params from pixels
+├── notebooks/                        # Kaggle-ready, self-contained notebooks (GPU)
+│   ├── 01_data_exploration.ipynb
+│   ├── 02_train_segmentation.ipynb   # <- main deliverable: training + benchmark
+│   ├── 03_regression_real_cracks.ipynb
+│   ├── 04_synthetic_cracks.ipynb
+│   └── 05_inverse_problem.ipynb
+└── PROJECT_LOG.md                    # Full debugging history & findings (source for report)
+```
 
-Outputs: `report/figures/` -> `results_table.tex`, `results.json`, `data_summary.tex` (numbers quoted in the paper),
-`eda_*.png`, `roc_pr_taskB.png`, `confusion_taskB.png`, `pred_vs_true_taskA.png`, `worst_errors_taskA.csv`, `error_by_*.csv`.
+## How to run (Kaggle, GPU)
 
-## Leakage safeguards (all covered by tests)
-* `unit_price`, `total_price`, identifiers and free text are never features; `clean()` asserts it.
-* Imputation values, clip bounds, scaler, tier threshold and encodings come from TRAIN only; `transform` never reads `price`.
-* Target-based features (district TE, geo-kNN) are out-of-fold with flat-grouped folds: a row never sees its own label.
-* The split keeps re-posted copies of one flat together; headline CV re-fits all preprocessing inside every fold.
-* Seed 42 everywhere; no test-set use for any choice.
+1. Create/open a Kaggle Notebook, attach the `concrete-crack-conglomerate` dataset,
+   enable **GPU** (Settings → Accelerator → GPU T4).
+2. Upload each notebook (or copy/paste) and run **top to bottom, in numeric order**
+   (01 → 02 → 03 → 04 → 05). Each notebook is self-contained: the first cells
+   `%%writefile` the `src/*.py` modules into `/kaggle/working/src`, so no separate file
+   upload is required — the `.py` files here are provided as the readable/reviewable
+   source, and the notebooks embed the exact same code.
+3. **Notebook 02 is checkpoint/resume-safe.** If a Kaggle session is interrupted, simply
+   re-run the notebook — it detects `/kaggle/working/checkpoint.pt` and continues from
+   the last completed epoch automatically.
+4. Notebook 05 depends on notebook 04's output (`synthetic/manifest.json`) — run 04 first.
 
-## Layout
-`src/data_prep.py` data + features + splits | `src/evaluate.py` metrics, CI, error analysis, tables |
-`src/eda.py` figures | `src/run_all.py` pipeline | `src/decision_tree.py`, `src/svm.py` models |
-`src/experiments_*.py` sweeps | `DECISIONS.md` every cleaning decision | `TEAM_NOTES.md` interface notes.
+**If your dataset path differs** from
+`/kaggle/input/concrete-crack-conglomerate/Task Data 3/Conglomerate Concrete Crack Detection/Conglomerate Concrete Crack Detection`,
+update the `ROOT = "..."` line near the top of each notebook.
+
+## What each notebook produces
+
+| Notebook | Produces |
+|---|---|
+| 01 | Full EDA: source-mix, class imbalance, empty-mask %, sample visualizations |
+| 02 | Trained model, loss/IoU curves, official test benchmark, leakage-aware benchmark, tolerant-IoU analysis, qualitative predictions, room-for-improvement notes |
+| 03 | Parametric polynomial fits for ≥3 real crack masks, R², interpretation |
+| 04 | 10 synthetic binary crack images (circle/sine, single & multi-function), saved masks + ground-truth params |
+| 05 | Recovered circle/sine coefficients vs. ground truth, per-image comparison table |
+
+## Key methodological finding (see PROJECT_LOG.md for full detail)
+
+This dataset is built from large source photos cut into many overlapping crops. A
+**naive filename-level train/val/test split leaks near-duplicate crops** between sets
+and inflates IoU by roughly 0.10-0.20. All splitting in this project is done by
+**source-photo ID** (grouping crops from the same original photo), which was verified to
+give zero overlap. Both the "raw" official-test-set benchmark and a **leakage-corrected
+"novel subset" benchmark** are reported in notebook 02 — report the novel-subset numbers
+as the trustworthy generalization estimate; the raw numbers are included for
+completeness/comparison only.
+
+## Notes on scope
+
+- Presentation (PPTX) and written report (Word) are intentionally **not** produced here,
+  per current priority — the notebooks' markdown cells contain all the interpretation
+  text needed to write both quickly once results are in.
+- `src/` modules were unit-tested locally (13-sample subset, CPU) for correctness before
+  being embedded in the notebooks; full-scale numbers (9899/1096 images, GPU) require
+  running notebook 02 on Kaggle.
