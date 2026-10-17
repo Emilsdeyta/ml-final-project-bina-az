@@ -1,0 +1,389 @@
+% =====================================================================
+%  bina.az price prediction -- final project slides (simple version)
+%  Compile: pdflatex slides_simple.tex   (run twice)
+%
+%  FIGURES: only files that python -m src.run_all really writes are used
+%  (PNG: eda_*, pred_vs_true_taskA, roc_pr_taskB, confusion_taskB,
+%  error_by_district_taskA; PDF: svm_lambda_sweep, svm_convergence,
+%  svm_feature_weights). Looked up in report/figures/. If one is missing
+%  an empty dashed box is drawn, so the deck always compiles.
+%  The tree has no plots, so its slides use tables from tree_results.json.
+% =====================================================================
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[scaled=0.95]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{xcolor}
+
+\graphicspath{{report/figures/}{../report/figures/}{figures/}{./}}
+
+% ----------------------------- palette -------------------------------
+\definecolor{ink}{HTML}{1F2933}
+\definecolor{accent}{HTML}{1F5FBF}
+\definecolor{muted}{HTML}{7B8794}
+\definecolor{hair}{HTML}{D9DEE4}
+
+\setbeamercolor{normal text}{fg=ink}
+\setbeamercolor{structure}{fg=accent}
+\setbeamercolor{itemize item}{fg=accent}
+\setbeamertemplate{itemize item}{\raisebox{0.2ex}{\tiny$\bullet$}}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=1.2cm,text margin right=1.2cm}
+
+% title: plain, left aligned, thin rule under it
+\setbeamertemplate{frametitle}{%
+  \vspace{1.1em}\nointerlineskip
+  \begin{beamercolorbox}[wd=\paperwidth,leftskip=1.2cm,rightskip=1.2cm]{frametitle}
+    {\Large\bfseries\color{ink}\insertframetitle\par}\vspace{3pt}
+    {\color{hair}\rule{\dimexpr\paperwidth-2.4cm\relax}{0.6pt}}
+  \end{beamercolorbox}}
+\setbeamertemplate{footline}{%
+  \hspace{1.2cm}{\fontsize{7}{8}\selectfont\color{muted}bina.az price prediction\hfill\insertframenumber\hspace{1.2cm}}\vspace{0.4cm}}
+
+% --------------------------- helpers ---------------------------------
+% \figslot[width]{file}{caption}  -- real image if it exists, empty dashed box otherwise
+\newcommand{\figslot}[3][\linewidth]{%
+  \begin{center}
+  \IfFileExists{#2}{\includegraphics[width=#1,height=\figh,keepaspectratio]{#2}}{%
+    \begin{tikzpicture}
+      \draw[dashed,hair,line width=0.8pt] (0.4pt,0) rectangle (#1-0.4pt,0.86\figh);
+      \node[text=muted,font=\scriptsize\ttfamily,text width=#1-1cm,align=center] at (0.5*#1,0.25\textheight)
+        {\detokenize{#2}};
+    \end{tikzpicture}}\\[2pt]
+  {\scriptsize\color{muted}#3}
+  \end{center}}
+\newlength{\figh}\setlength{\figh}{0.58\textheight}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\aside}[1]{{\footnotesize\color{muted}#1}}
+
+\title{What is a property worth?}
+\author{Emil Mammadov \and Gasham Huseynli \and Orkhan Nuriyev}
+
+\begin{document}
+
+% 1 ------------------------------------------------------------------
+\begin{frame}[plain]
+  \vspace*{2.6cm}
+  {\fontsize{28}{32}\selectfont\bfseries\color{ink}What is a property worth?\par}
+  \vspace{0.5em}
+  {\large\color{accent}Predicting bina.az prices with a decision tree and an SVM written from scratch\par}
+  \vspace{2em}
+  {\small Emil Mammadov \quad Gasham Huseynli \quad Orkhan Nuriyev\par}
+  {\footnotesize\color{muted}MLE-AI-201 Machine Learning \,\textbullet\, AI Academy, National AI Center \,\textbullet\, October 2026\par}
+\end{frame}
+
+% 2 ------------------------------------------------------------------
+\begin{frame}[t]{The problem}
+  \vspace{0.6em}
+  Given a listing from bina.az, we ask two questions.
+  \vspace{1em}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      {\bfseries\color{accent}A \,\textbullet\, How much is it worth?}\\[3pt]
+      Regression on $\log(1+\text{price})$.\\
+      \aside{Metrics: RMSE, MAE, $R^2$}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      {\bfseries\color{accent}B \,\textbullet\, Premium or standard?}\\[3pt]
+      Premium means price above the \emph{training} median, 208\,000 AZN.\\
+      \aside{Metrics: F1, ROC-AUC, confusion matrix}
+    \end{column}
+  \end{columns}
+  \vspace{1.6em}
+  \begin{tabular}{@{}l@{\hspace{2.2em}}l@{\hspace{2.2em}}l@{\hspace{2.2em}}l@{}}
+    \textbf{57\,480} & \textbf{27} & \textbf{70/15/15} & \textbf{8\,622}\\
+    \aside{clean listings} & \aside{features} & \aside{train / val / test} & \aside{test listings}
+  \end{tabular}
+\end{frame}
+
+% 3 ------------------------------------------------------------------
+\begin{frame}[t]{Cleaning the data}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.46\textwidth}
+      \vspace{0.4em}
+      \small
+      \begin{tabular}{@{}lr@{}}
+        \toprule
+        Step & Rows\\
+        \midrule
+        Raw Kaggle dump & 100\,775\\
+        Latest scrape per ad & 63\,773\\
+        Residential only & 57\,796\\
+        Sanity bounds (area, price/m$^2$) & 57\,712\\
+        Duplicate content removed & 57\,480\\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.8em}
+      \begin{itemize}\setlength\itemsep{0.3em}
+        \item The same ad is scraped daily, so we keep the latest.
+        \item Missing values are structural: houses have no floors, flats have no land.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.50\textwidth}
+      \figslot[\linewidth]{eda_price_hist.png}{Price is heavy-tailed, log price is close to symmetric.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 4 ------------------------------------------------------------------
+\begin{frame}[t]{Leakage}
+  \vspace{0.6em}
+  \code{unit\_price} and \code{total\_price} restate the target: correlation with price is \textbf{1.0000}. We drop them, together with identifiers, free text and post-listing signals (views, VIP).
+  \vspace{1.2em}
+
+  What keeps the rest honest:
+  \begin{itemize}\setlength\itemsep{0.5em}
+    \item Imputation, scaling and the 208\,000 AZN threshold are fitted on train only.
+    \item District encoding and neighbour prices are computed out-of-fold.
+    \item The split is grouped by physical flat, so re-posted copies never straddle it.
+    \item The test set is used once, for the final numbers.
+  \end{itemize}
+\end{frame}
+
+% 5 ------------------------------------------------------------------
+\begin{frame}[t]{Size and location}
+  \setlength{\figh}{0.42\textheight}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \figslot[\linewidth]{eda_area_vs_price.png}{Area against price.}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \figslot[\linewidth]{eda_location_map.png}{Price per m$^2$ by location.}
+    \end{column}
+  \end{columns}
+  \vspace{0.2em}
+  Area drives price, but price per m$^2$ changes sharply across the city. So each listing also gets the mean and spread of log price per m$^2$ of its 20 nearest training listings (out-of-fold, so a row never sees its own label).
+\end{frame}
+
+% 6 ------------------------------------------------------------------
+\begin{frame}[t]{Decision tree}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.50\textwidth}
+      \vspace{0.3em}
+      {\small
+      \[ G = 1-\sum_k p_k^2 \qquad I_{\text{reg}}=\tfrac1N\sum_i (y_i-\bar y)^2 \]
+      \[ \mathrm{IG}=I(\text{parent})-\sum_{c}\tfrac{N_c}{N}I(c) \]}
+      \begin{itemize}\setlength\itemsep{0.35em}\small
+        \item Sort each feature, test the midpoints, keep the best gain, recurse.
+        \item Stop on depth, leaf size, split size or minimum gain.
+      \end{itemize}
+      \aside{Final: regression depth 10, leaf 15; classification Gini, depth 10, leaf 30.}
+    \end{column}
+    \begin{column}{0.40\textwidth}
+      \vspace{0.4em}
+      {\small\bfseries Validation $R^2$, regression (leaf 15)}\\[3pt]
+      \footnotesize
+      \renewcommand{\arraystretch}{1.2}\setlength{\tabcolsep}{4pt}
+      \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        depth & 6 & 8 & \textbf{10} & 12\\
+        \midrule
+        $R^2$ & 0.812 & 0.835 & \textbf{0.840} & 0.838\\
+        \bottomrule
+      \end{tabular}\\[4pt]
+      \aside{Too shallow underfits, deeper starts to overfit.}\\[8pt]
+      {\small\bfseries Validation AUC, classification}\\[3pt]
+      \footnotesize
+      \begin{tabular}{@{}lc@{}}
+        \toprule
+        Gini, depth 10, leaf 15 & 0.9565\\
+        Entropy, depth 10, leaf 15 & 0.9574\\
+        \textbf{Gini, depth 10, leaf 30} & \textbf{0.9600}\\
+        \bottomrule
+      \end{tabular}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 7 ------------------------------------------------------------------
+\begin{frame}[t]{Pegasos SVM}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.46\textwidth}
+      \vspace{0.3em}
+      {\scriptsize
+      \[ J(w,b)=\tfrac{\lambda}{2}\lVert w\rVert^2+\tfrac1n\sum_i\max\!\big(0,1-y_i(w^\top x_i+b)\big) \]
+      \[ w\leftarrow(1-\eta_t\lambda)\,w+\eta_t\,y_i x_i\,[\,y_i w^\top x_i<1\,],\quad \eta_t=\tfrac{1}{\lambda t} \]}
+      \begin{itemize}\setlength\itemsep{0.35em}\small
+        \item $\lVert w\rVert=1.67$, margin width $1.20$, 34\% of training points are support vectors.
+        \item Random Fourier features (RBF) did not beat linear: F1 0.85 vs.\ 0.91.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.24\textwidth}
+      \figslot[\linewidth]{svm_lambda_sweep.pdf}{Validation F1 against $\lambda$.}
+    \end{column}
+    \begin{column}{0.24\textwidth}
+      \figslot[\linewidth]{svm_convergence.pdf}{Objective during training.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 8 ------------------------------------------------------------------
+\begin{frame}[t]{How we compared}
+  \vspace{0.6em}
+  \begin{itemize}\setlength\itemsep{0.7em}
+    \item Same split for every model: 70/15/15, grouped by flat, seed 42.
+    \item Hyperparameters chosen on validation only.
+    \item One evaluation module, tested against scikit-learn, scores every model.
+    \item Uncertainty: bootstrap std over 300 resamples, plus nested 5-fold CV.
+    \item Baselines: mean and majority floors, ridge, scikit-learn tree, \code{SVC}, \code{SGDClassifier}.
+  \end{itemize}
+\end{frame}
+
+% 9 ------------------------------------------------------------------
+\begin{frame}[t]{Results: price}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.52\textwidth}
+      \vspace{0.5em}
+      \small
+      \renewcommand{\arraystretch}{1.25}
+      \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Model & RMSE & $R^2$ & MAE (AZN)\\
+        \midrule
+        Mean (floor) & 0.629 & 0.000 & 127\,850\\
+        \textbf{Ridge (ours)} & \textbf{0.226} & \textbf{0.870} & \textbf{48\,280}\\
+        Tree (ours) & 0.239 & 0.856 & 49\,516\\
+        sklearn tree & 0.238 & 0.856 & 49\,353\\
+        \bottomrule
+      \end{tabular}\\[3pt]
+      \aside{Test set, RMSE and $R^2$ on log price.}
+      \vspace{0.6em}
+
+      Ridge beats the tree: once location is encoded well, price is close to linear.
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \figslot[\linewidth]{pred_vs_true_taskA.png}{Predicted vs.\ true price.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 10 -----------------------------------------------------------------
+\begin{frame}[t]{Results: premium or standard}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.44\textwidth}
+      \vspace{0.3em}
+      \footnotesize
+      \renewcommand{\arraystretch}{1.2}
+      \begin{tabular}{@{}lccr@{}}
+        \toprule
+        Model & F1 & AUC & Fit\\
+        \midrule
+        Tree (ours) & 0.914 & 0.972 & 65\,s\\
+        sklearn tree & 0.914 & 0.972 & 0.7\,s\\
+        \textbf{Pegasos (ours)} & \textbf{0.908} & \textbf{0.968} & \textbf{1\,s}\\
+        sklearn \code{SVC} & 0.924 & 0.981 & 306\,s\\
+        sklearn \code{SGD} & 0.913 & 0.969 & 0.1\,s\\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.6em}
+      \begin{itemize}\setlength\itemsep{0.3em}\small
+        \item Our tree matches scikit-learn.
+        \item Pegasos is 1.6 F1 points behind \code{SVC} and about 300$\times$ faster.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.24\textwidth}
+      \figslot[\linewidth]{roc_pr_taskB.png}{ROC and PR curves.}
+    \end{column}
+    \begin{column}{0.24\textwidth}
+      \figslot[\linewidth]{confusion_taskB.png}{Confusion matrix.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 11 -----------------------------------------------------------------
+\begin{frame}[t]{What drives the price}
+  \setlength{\figh}{0.5\textheight}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.50\textwidth}
+      \vspace{0.5em}
+      \small
+      \renewcommand{\arraystretch}{1.25}
+      \begin{tabular}{@{}lcc@{}}
+        \toprule
+        Tree importance & Task A & Task B\\
+        \midrule
+        Area (m$^2$) & 0.616 & 0.648\\
+        Neighbourhood price (kNN) & 0.211 & 0.086\\
+        District encoding & 0.123 & 0.187\\
+        Everything else & 0.050 & 0.079\\
+        \bottomrule
+      \end{tabular}
+      \vspace{0.8em}
+
+      Area and location carry 92 to 95\% of the importance.\\[4pt]
+      The SVM agrees: its largest weights are log-area, neighbourhood price and district encoding.
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \figslot[\linewidth]{svm_feature_weights.pdf}{Largest SVM weights.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 12 -----------------------------------------------------------------
+\begin{frame}[t]{Where it fails}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.52\textwidth}
+      \figslot[\linewidth]{error_by_district_taskA.png}{Hardest districts, median error.}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \vspace{0.8em}
+      \begin{itemize}\setlength\itemsep{0.45em}\small
+        \item Above 800k AZN the median error is 32\%, with a $-27$\% bias.
+        \item Houses are hardest: 22.7\% error vs.\ about 10\% for flats.
+        \item The 20 biggest misses are all under-predictions, mostly large houses in Badamdar, Merdekan and Bilgeh.
+        \item Task B errors sit near the 208k threshold.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 13 -----------------------------------------------------------------
+\begin{frame}[t]{Limits and next steps}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \vspace{0.5em}
+      {\bfseries Limits}
+      \begin{itemize}\setlength\itemsep{0.4em}\small
+        \item Asking prices, not sale prices.
+        \item 27 tabular features, no text or photos.
+        \item Luxury listings are rare and under-predicted.
+        \item Premium is relative to the training median.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \vspace{0.5em}
+      {\bfseries Next}
+      \begin{itemize}\setlength\itemsep{0.4em}\small
+        \item Land-area features for houses.
+        \item Features from listing descriptions.
+        \item A quantile model for the luxury tail.
+        \item A random forest from our own trees.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 14 -----------------------------------------------------------------
+\begin{frame}[t]{Team and reproducibility}
+  \vspace{0.5em}
+  \begin{tabular}{@{}ll@{}}
+    \textbf{Emil} & cleaning, leakage-safe preprocessing, evaluation, ridge, pipeline, tests\\[3pt]
+    \textbf{Gasham} & decision tree from scratch, tree experiments, scikit-learn comparison\\[3pt]
+    \textbf{Orkhan} & Pegasos SVM and random Fourier features, SVM experiments, comparison
+  \end{tabular}
+  \vspace{1.6em}
+
+  Everything reproduces with one command: \code{python -m src.run\_all -{}-strict}\\[3pt]
+  {\small\color{accent}https://github.com/Emilsdeyta/ml-final-project-bina-az}
+  \vfill
+  {\Large\bfseries Thank you. Questions?}
+  \vspace{1cm}
+\end{frame}
+
+\end{document}
