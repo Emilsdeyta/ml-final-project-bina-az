@@ -150,7 +150,7 @@ dictionary, and every model entry in it carries three extra keys:
 `run_all.py` uses the factory to **re-fit and re-score every model with identical code**, so each row in a
 results table is comparable. It also warns if a number reported by the model's owner differs from the
 recomputed one. Models only need `fit(X, y)` and `predict(X)`, plus `predict_proba` or `decision_function`
-for Task B. The full interface notes are in [`TEAM_NOTES.md`](TEAM_NOTES.md).
+for Task B.
 
 ### Where to change what
 
@@ -220,7 +220,6 @@ This was the part we cared about most, and every point below is covered by a tes
 ├── presentation/             # slides
 ├── data/                     # dataset goes here (not committed)
 ├── DECISIONS.md              # every data decision and why
-├── TEAM_NOTES.md             # interface contract between modules
 ├── contribution_report.md    # who did what
 ├── requirements.txt
 └── pytest.ini
